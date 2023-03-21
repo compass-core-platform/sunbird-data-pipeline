@@ -82,6 +82,16 @@ scale_properties:
     scale_target_value: {{ flink_job_names['cb-course-aggregator'].scale_target_value | default(0) }}
     min_replica: {{ flink_job_names['cb-course-aggregator'].min_replica | default(1) }}
     max_replica: {{ flink_job_names['cb-course-aggregator'].max_replica | default(2) }}
+  notification-engine:
+    enabled: {{ flink_job_names['notification-engine'].scale_enabled | lower}}
+    scale_target_value: {{ flink_job_names['notification-engine'].scale_target_value | default(0) }}
+    min_replica: {{ flink_job_names['notification-engine'].min_replica | default(1) }}
+    max_replica: {{ flink_job_names['notification-engine'].max_replica | default(2) }}
+  validate-notification-preferences:
+    enabled: {{ flink_job_names['validate-notification-preferences'].scale_enabled | lower}}
+    scale_target_value: {{ flink_job_names['validate-notification-preferences'].scale_target_value | default(0) }}
+    min_replica: {{ flink_job_names['validate-notification-preferences'].min_replica | default(1) }}
+    max_replica: {{ flink_job_names['validate-notification-preferences'].max_replica | default(2) }}
   ingest-router:
     enabled: {{ flink_job_names['ingest-router'].scale_enabled | lower}}
     scale_target_value: {{ flink_job_names['ingest-router'].scale_target_value }}
@@ -689,6 +699,131 @@ cb-course-aggregator:
     taskmanager.memory.process.size: {{ flink_job_names['cb-course-aggregator'].taskmanager_process_memory }}
     jobmanager.memory.process.size: {{ flink_job_names['cb-course-aggregator'].jobmanager_process_memory }}
 
+notification-engine:
+  notification-engine: |+
+    include file("/data/flink/conf/base-config.conf")
+    kafka {
+       output.topic = {{ env_name }}.failedNotification
+       notification.input.topic = {{ env_name }}.notification.event
+       bootstrap_server = "{{ kafka_brokers }}"
+       notification_preference_input.topic = {{ env_name }}.notification.preference
+       groupId = {{ env_name }}_notification_engine
+       notification_job.topic = {{ env_name }}.notification.job
+    }
+    ext-cassandra {
+          keyspace = "sunbird"
+          EMAIL_RECORD_TABLE = "email_record"
+          user_content_db_table = "user_content_consumption"
+          courses_keyspace = "sunbird_courses"
+          {{ env_name }}_hierarchy_store_keyspace="{{ env_name }}_hierarchy_store"
+          content_hierarchy_table="content_hierarchy"
+          user_table="user"
+          course_table = "user_enrolments"
+          exclude_user_emails_table="exclude_user_emails"
+          host = "{{ core_cassandra_host }}"
+          port = "9042"
+        }
+    url {
+       km_base_host = "https:/{{ domain_name }}/api/"
+       content_search = "content/v1/search"
+       course_url = "https://{{ domain_name }}/app/toc/"
+       overview_batch = "/overview?batchId"
+       notification_event_endpoint = "https:/{{ domain_name }}/dummy"
+       sb_service_url = "http://localhost:9000/"
+       notification_service_host = "http://localhost:9000/"
+       sb_user_search = "private/user/v1/search"
+       }
+    task {
+       notification_engine_parallelism = 1
+       }
+    kafka-key {
+       key_serializer = "key.serializer"
+       value_serializer = "value.serializer"
+       bootstrap_servers = "bootstrap.servers"
+       }
+    mailList {
+       recipient_new_course_email = "{{ recipient_new_course_email }}"
+       }
+    fields {
+       search_fields="name,appIcon,instructions,description,purpose,mimeType,gradeLevel,identifier,medium,pkgVersion,board,subject,resourceType,primaryCategory,contentType,channel,organisation,trackable,license,posterImage,idealScreenSize,learningMode,creatorLogo,duration,version"
+       user_search_fields = "firstName,lastName,profileDetails"
+       }
+    senderMail {
+       sender_mail = "{{ sunbird_mail_server_from_email }}"
+       }
+    ES {
+       sb_es_user_profile_index="user_alias"
+       es_profile_index_type="_doc"
+       host= "{{ sunbird_es_host }}"
+       port="9300"
+       }
+    const {
+       latest_courses_alert_send_to_all_user = true
+       }
+    consumerKey {
+       incomplete_course_alert_message_key="courseReminder"
+       latest_course_alert_message_key="latestCourse"
+       first_course_enrolment_message_key="firstCourseEnrol"
+       }
+  flink-conf: |+
+    jobmanager.memory.flink.size: {{ flink_job_names['notification-engine'].jobmanager_memory }}
+    taskmanager.memory.flink.size: {{ flink_job_names['notification-engine'].taskmanager_memory }}
+    taskmanager.numberOfTaskSlots: {{ flink_job_names['notification-engine'].taskslots }}
+    parallelism.default: 1
+    jobmanager.execution.failover-strategy: region
+    taskmanager.memory.network.fraction: 0.1
+    scheduler-mode: reactive
+    heartbeat.timeout: 8000
+    heartbeat.interval: 5000
+    taskmanager.memory.process.size: {{ flink_job_names['notification-engine'].taskmanager_process_memory }}
+    jobmanager.memory.process.size: {{ flink_job_names['notification-engine'].jobmanager_process_memory }}
+    
+validate-notification-preferences:
+  validate-notification-preferences: |+
+    include file("/data/flink/conf/base-config.conf")
+    kafka {
+       output.topic = {{ env_name }}.failedNotification
+       bootstrap_server = "{{ kafka_brokers }}"
+       notification_preference_input.topic = {{ env_name }}.notification.preference
+       groupId = {{ env_name }}_notification_preference
+       notification_job.topic = {{ env_name }}.notification.job
+    }
+    ext-cassandra {
+          host = "{{ core_cassandra_host }}"
+          port = "9042"
+        }
+    task {
+       notificationPreference.parallelism = 1
+       }
+    kafka-key {
+       key_serializer = "key.serializer"
+       value_serializer = "value.serializer"
+       bootstrap_servers = "bootstrap.servers"
+       }
+
+    senderMail {
+       sender_mail = "{{ sunbird_mail_server_from_email }}"
+       }
+    ES {
+       sb_es_user_notification_preference="notify_preference"
+       es_preference_index_type="_doc"
+       host= "{{ sunbird_es_host }}"
+       port="9300"
+       }
+
+  flink-conf: |+
+    jobmanager.memory.flink.size: {{ flink_job_names['validate-notification-preferences'].jobmanager_memory }}
+    taskmanager.memory.flink.size: {{ flink_job_names['validate-notification-preferences'].taskmanager_memory }}
+    taskmanager.numberOfTaskSlots: {{ flink_job_names['validate-notification-preferences'].taskslots }}
+    parallelism.default: 1
+    jobmanager.execution.failover-strategy: region
+    taskmanager.memory.network.fraction: 0.1
+    scheduler-mode: reactive
+    heartbeat.timeout: 8000
+    heartbeat.interval: 5000
+    taskmanager.memory.process.size: {{ flink_job_names['validate-notification-preferences'].taskmanager_process_memory }}
+    jobmanager.memory.process.size: {{ flink_job_names['validate-notification-preferences'].jobmanager_process_memory }}
+    
 druid-validator:
   druid-validator: |+
     include file("/data/flink/conf/base-config.conf")
