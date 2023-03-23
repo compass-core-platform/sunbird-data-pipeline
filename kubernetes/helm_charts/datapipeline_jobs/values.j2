@@ -755,7 +755,7 @@ notification-engine:
        sb_es_user_profile_index="user_alias"
        es_profile_index_type="_doc"
        host= "{{ sunbird_es_host }}"
-       port="9300"
+       port="9200"
        }
     const {
        latest_courses_alert_send_to_all_user = true
@@ -808,7 +808,7 @@ validate-notification-preferences:
        sb_es_user_notification_preference="notify_preference"
        es_preference_index_type="_doc"
        host= "{{ sunbird_es_host }}"
-       port="9300"
+       port="9200"
        }
 
   flink-conf: |+
