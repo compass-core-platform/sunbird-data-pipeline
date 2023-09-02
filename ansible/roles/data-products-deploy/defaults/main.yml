@@ -73,8 +73,8 @@ dataset_metadata_table: "{{ env }}_dataset_metadata"
 report_user_table_keyspace: "sunbird_courses"
 report_user_enrolment_table: "report_user_enrolments"
 
-analytics_job_list: '"wfs", "competency-metrics", "assessment-metrics", "monitor-job-summ"'
-analytics_jobs_count: 4
+analytics_job_list: '"wfs", "competency-metrics", "assessment-metrics", "monitor-job-summ", "user-report-job"'
+analytics_jobs_count: 5
 
 cassandra_keyspace_prefix: '{{ env }}_'
 report_cassandra_cluster_host: "{{ report_cassandra_host | default(core_cassandra_host) }}"
@@ -91,16 +91,21 @@ spark:
     host: 172.31.11.117
   worker:
     instances: 1
-    cores: 2
-    memory: 4g
+    cores: 12
+    memory: 40g
   driver:
-    memory: 3g
+    memory: 16g
+    cores: 2
+    memoryOverhead: 3g
   executor:
-    memory: 4g
-  driver_memory: 7g
+    instances: 6
+    cores: 2
+    memory: 5g
+    memoryOverhead: 1g
+  driver_memory: 16g
   memory_fraction: 0.3
-  storage_fraction: 0.5  
-  executor_memory: 2g
+  storage_fraction: 0.5
+  executor_memory: 5g
   heap_conf_str: '"-XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Xms250m {{ heap_memory }} -XX:+UseStringDeduplication"'
 
 submit_jobs:
