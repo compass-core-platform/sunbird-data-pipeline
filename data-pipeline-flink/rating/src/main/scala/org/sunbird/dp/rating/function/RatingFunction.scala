@@ -48,6 +48,8 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
         userStatus = true
         var delta = 0.0f
         val prevRatingValue = event.prevValues
+        logger.info("event ::"+event)
+        logger.info("prevRatingValue ::"+prevRatingValue)
         if(prevRatingValue!=null){
           delta = event.updatedValues.get("rating").asInstanceOf[Double].toFloat - event.prevValues.get("rating").asInstanceOf[Double].toFloat
         }else{
@@ -254,6 +256,7 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
 
   def saveRatingSummary(event: Event, updatedRatingValues: HashMap[Float, Float],
                         summary: String, sumOfTotalRating: Float, totalRating: Float): Unit = {
+    //ratings_summary table.
     val query = QueryBuilder.insertInto(config.dbKeyspace, config.ratingsSummaryTable)
       .value("activityid", event.activityId)
       .value("activitytype", event.activityType)
@@ -281,7 +284,11 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
       .where(QueryBuilder.eq("activityid", event.activityId))
       .and(QueryBuilder.eq("activitytype", event.activityType))
       .and(QueryBuilder.eq("rating", event.prevValues.get("rating").asInstanceOf[Double].toFloat))
-      .and(QueryBuilder.eq("updatedon", timeBasedUuid)).toString
+      .and(QueryBuilder.eq("updatedon", timeBasedUuid))
+      .and(QueryBuilder.eq("assessmentsquality", event.prevValues.get("assessmentsQuality").asInstanceOf[Double].toFloat))
+      .and(QueryBuilder.eq("contentrelevance", event.prevValues.get("contentRelevance").asInstanceOf[Double].toFloat))
+      .and(QueryBuilder.eq("courseengagement", event.prevValues.get("courseEngagement").asInstanceOf[Double].toFloat))
+      .and(QueryBuilder.eq("instructorquality", event.prevValues.get("instructorQuality").asInstanceOf[Double].toFloat)).toString
 
     cassandraUtil.upsert(query)
     logger.info("Successfully saved the rating for lookup - activityId: "
@@ -298,7 +305,11 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
       .value("rating", event.updatedValues.get("rating").asInstanceOf[Double].toFloat)
       .value("updatedon", timeBasedUuid)
       .value("review", event.updatedValues.get("review").toString)
-      .value("userid", event.userId).toString
+      .value("userid", event.userId)
+      .value("assessmentsquality", event.updatedValues.get("assessmentsQuality").asInstanceOf[Double].toFloat)
+      .value("contentrelevance", event.updatedValues.get("contentRelevance").asInstanceOf[Double].toFloat)
+      .value("courseengagement", event.updatedValues.get("courseEngagement").asInstanceOf[Double].toFloat)
+      .value("instructorquality", event.updatedValues.get("instructorQuality").asInstanceOf[Double].toFloat).toString
 
     cassandraUtil.upsert(query)
     logger.info("Successfully saved the rating for lookup - activityId: "
