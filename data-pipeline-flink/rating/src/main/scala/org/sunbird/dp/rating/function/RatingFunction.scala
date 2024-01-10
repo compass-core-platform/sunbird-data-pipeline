@@ -41,6 +41,7 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
   override def processElement(event: Event, context: ProcessFunction[Event, Event]#Context, metrics: Metrics): Unit = {
     var userStatus: Boolean = false
     try {
+      logger.info("event ::"+event)
       val query = QueryBuilder.select().column("userid").from(config.dbCoursesKeyspace, config.courseTable)
         .where(QueryBuilder.eq(config.userId, event.userId)).and(QueryBuilder.eq(config.courseId, event.activityId))
       val rows: java.util.List[Row] = cassandraUtil.find(query.toString);
@@ -297,6 +298,7 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
   }
 
   def saveRatingLookup(event: Event): Unit = {
+    logger.info("saveRatingLookup event ::"+event)
     val updatingTime = event.updatedValues.get("updatedOn").asInstanceOf[String]
     val timeBasedUuid = UUID.fromString(updatingTime)
     val query = QueryBuilder.insertInto(config.dbKeyspace, config.ratingsLookupTable)
