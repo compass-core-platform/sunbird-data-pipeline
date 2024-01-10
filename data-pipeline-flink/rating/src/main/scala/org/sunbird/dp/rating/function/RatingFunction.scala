@@ -45,7 +45,10 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
       val query = QueryBuilder.select().column("userid").from(config.dbCoursesKeyspace, config.courseTable)
         .where(QueryBuilder.eq(config.userId, event.userId)).and(QueryBuilder.eq(config.courseId, event.activityId))
       val rows: java.util.List[Row] = cassandraUtil.find(query.toString);
+      logger.info("query.toString ::" + query.toString)
+      logger.info("total rows ::" + rows)
       if (null != rows && !rows.isEmpty) {
+        logger.info("rows ::" + rows)
         userStatus = true
         var delta = 0.0f
         val prevRatingValue = event.prevValues
@@ -128,6 +131,7 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
           }
           saveRatingLookup(event)
       } else {
+        logger.info("config.failedEvent: ")
         context.output(config.failedEvent, event)
       }
     }
