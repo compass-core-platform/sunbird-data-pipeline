@@ -312,6 +312,7 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
       .value("instructorquality", event.updatedValues.get("instructorQuality").asInstanceOf[Double].toFloat).toString
 
     cassandraUtil.upsert(query)
+    logger.info("printing saveRatingLookUp query :: "+query)
     logger.info("Successfully saved the rating for lookup - activityId: "
       + event.activityId + " ,activityType: " + event.activityType + " ,userId: "
       + event.userId + "with " + "prevValues: " + event.prevValues + "and updateValues" + event.updatedValues)
