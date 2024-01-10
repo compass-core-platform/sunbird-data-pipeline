@@ -257,7 +257,6 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
 
   def saveRatingSummary(event: Event, updatedRatingValues: HashMap[Float, Float],
                         summary: String, sumOfTotalRating: Float, totalRating: Float): Unit = {
-    //ratings_summary table.
     val query = QueryBuilder.insertInto(config.dbKeyspace, config.ratingsSummaryTable)
       .value("activityid", event.activityId)
       .value("activitytype", event.activityType)
@@ -285,12 +284,7 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
       .where(QueryBuilder.eq("activityid", event.activityId))
       .and(QueryBuilder.eq("activitytype", event.activityType))
       .and(QueryBuilder.eq("rating", event.prevValues.get("rating").asInstanceOf[Double].toFloat))
-      .and(QueryBuilder.eq("updatedon", timeBasedUuid))
-      .and(QueryBuilder.eq("assessmentsquality", event.prevValues.get("assessmentsQuality").asInstanceOf[Double].toFloat))
-      .and(QueryBuilder.eq("contentrelevance", event.prevValues.get("contentRelevance").asInstanceOf[Double].toFloat))
-      .and(QueryBuilder.eq("courseengagement", event.prevValues.get("courseEngagement").asInstanceOf[Double].toFloat))
-      .and(QueryBuilder.eq("instructorquality", event.prevValues.get("instructorQuality").asInstanceOf[Double].toFloat)).toString
-
+      .and(QueryBuilder.eq("updatedon", timeBasedUuid)).toString
     cassandraUtil.upsert(query)
     logger.info("Successfully saved the rating for lookup - activityId: "
       + event.activityId + " ,activityType: " + event.activityType + " ,userId: "
