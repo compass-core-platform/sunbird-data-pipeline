@@ -41,6 +41,7 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
   override def processElement(event: Event, context: ProcessFunction[Event, Event]#Context, metrics: Metrics): Unit = {
     var userStatus: Boolean = false
     try {
+      logger.info("event ::" + event)
       val query = QueryBuilder.select().column("userid").from(config.dbCoursesKeyspace, config.courseTable)
         .where(QueryBuilder.eq(config.userId, event.userId)).and(QueryBuilder.eq(config.courseId, event.activityId))
       val rows: java.util.List[Row] = cassandraUtil.find(query.toString);
@@ -48,6 +49,7 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
         userStatus = true
         var delta = 0.0f
         val prevRatingValue = event.prevValues
+        logger.info("prevRatingValue ::" + prevRatingValue)
         if(prevRatingValue!=null){
           delta = event.updatedValues.get("rating").asInstanceOf[Double].toFloat - event.prevValues.get("rating").asInstanceOf[Double].toFloat
         }else{
@@ -298,9 +300,14 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
       .value("rating", event.updatedValues.get("rating").asInstanceOf[Double].toFloat)
       .value("updatedon", timeBasedUuid)
       .value("review", event.updatedValues.get("review").toString)
-      .value("userid", event.userId).toString
+      .value("userid", event.userId)
+      .value("assessmentsquality", event.updatedValues.get("assessmentsQuality").asInstanceOf[Double].toFloat)
+      .value("contentrelevance", event.updatedValues.get("contentRelevance").asInstanceOf[Double].toFloat)
+      .value("courseengagement", event.updatedValues.get("courseEngagement").asInstanceOf[Double].toFloat)
+      .value("instructorquality", event.updatedValues.get("instructorQuality").asInstanceOf[Double].toFloat).toString
 
     cassandraUtil.upsert(query)
+    logger.info("printing saveRatingLookUp query :: "+query)
     logger.info("Successfully saved the rating for lookup - activityId: "
       + event.activityId + " ,activityType: " + event.activityType + " ,userId: "
       + event.userId + "with " + "prevValues: " + event.prevValues + "and updateValues" + event.updatedValues)
