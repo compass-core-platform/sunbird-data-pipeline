@@ -298,6 +298,7 @@ class RatingFunction(config: RatingConfig, @transient var cassandraUtil: Cassand
   }
 
   def saveRatingLookup(event: Event): Unit = {
+    logger.info("printing saveRatingLookUp event :: "+event)
     val updatingTime = event.updatedValues.get("updatedOn").asInstanceOf[String]
     val timeBasedUuid = UUID.fromString(updatingTime)
     var review_value: String = null;
